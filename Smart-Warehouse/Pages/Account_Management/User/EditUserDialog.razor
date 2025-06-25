@@ -1,0 +1,139 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Radzen
+@using Radzen.Blazor
+@using Smart_Warehouse.API.Models
+@using Smart_Warehouse.Commons
+
+@inject IHttpClientFactory HttpClientFactory
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<RadzenTemplateForm TItem="UserResponse" Data="@user" Submit="@UpdateUser">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <RadzenLabel Text="Username" />
+            <RadzenTextBox @bind-Value="user.Username" Name="Username" class="w-100" Disabled="true" />
+        </div>
+        <div class="col-md-6">
+            <RadzenLabel Text="Email" />
+            <RadzenTextBox @bind-Value="user.Email" Name="Email" class="w-100" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <RadzenLabel Text="First Name" />
+            <RadzenTextBox @bind-Value="user.FirstName" Name="FirstName" class="w-100" />
+        </div>
+        <div class="col-md-6">
+            <RadzenLabel Text="Last Name" />
+            <RadzenTextBox @bind-Value="user.LastName" Name="LastName" class="w-100" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <RadzenLabel Text="Roles" />
+            <RadzenDropDown @bind-Value="selectedRoles" Data="@availableRoles" Multiple="true"
+                            Name="Roles" class="w-100" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Update" Icon="save" ButtonStyle="ButtonStyle.Primary" />
+            <RadzenButton Text="Cancel" Icon="cancel" ButtonStyle="ButtonStyle.Secondary" Click="@CloseDialog" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+
+@code {
+    [Parameter] public UserResponse User { get; set; } = new();
+    private UserResponse user = new();
+    private List<string> availableRoles = new();
+    private List<string> selectedRoles = new();
+    private List<string> rolesToRemove = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = new UserResponse
+            {
+                Id = User.Id,
+                Username = User.Username,
+                Email = User.Email,
+                FirstName = User.FirstName,
+                LastName = User.LastName,
+                Roles = User.Roles
+            };
+
+        selectedRoles = user.Roles;
+
+        // Fetch available roles from the API
+        var client = HttpClientFactory.CreateClient(Common.ServerAPI);
+
+        var rolesResponse = await client.GetFromJsonAsync<List<IdentityRole>>("api/roles") ?? new();
+
+        availableRoles = rolesResponse.Select(role => role.Name).Where(name => name != null).Cast<string>().ToList();
+    }
+
+    private async Task UpdateUser()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient(Common.ServerAPI);
+
+            // Determine roles to remove
+            rolesToRemove = user.Roles.Except(selectedRoles).ToList();
+
+            // Update user details
+            var userUpdateResponse = await client.PutAsJsonAsync($"api/user/{user.Id}", user);
+
+            if (!userUpdateResponse.IsSuccessStatusCode)
+            {
+                var error = await userUpdateResponse.Content.ReadAsStringAsync();
+                await DialogService.Alert($"<strong>Failed to update user: {error}</strong>", "<strong><span style='color: red'>Error!</span></strong>", new AlertOptions() { OkButtonText = "OK", ShowClose = true, Width = "contain" });
+                return;
+            }
+
+            // Update user roles
+            var roleUpdateResponse = await client.PostAsJsonAsync($"api/roles/assign-list", new AssignRolesRequest
+                {
+                    UserId = user.Id,
+                    RoleNames = selectedRoles
+                });
+
+            if (!roleUpdateResponse.IsSuccessStatusCode)
+            {
+                var error = await roleUpdateResponse.Content.ReadAsStringAsync();
+                await DialogService.Alert($"<strong>Failed to update roles: {error}</strong>", "<strong><span style='color: red'>Error!</span></strong>", new AlertOptions() { OkButtonText = "OK", ShowClose = true, Width = "contain" });
+                return;
+            }
+
+            // Remove unselected roles
+            if (rolesToRemove.Any())
+            {
+                var removeRolesResponse = await client.PostAsJsonAsync($"api/roles/remove-list", new AssignRolesRequest
+                    {
+                        UserId = user.Id,
+                        RoleNames = rolesToRemove
+                    });
+
+                if (!removeRolesResponse.IsSuccessStatusCode)
+                {
+                    var error = await removeRolesResponse.Content.ReadAsStringAsync();
+                    await DialogService.Alert($"<strong>Failed to remove roles: {error}</strong>", "<strong><span style='color: red'>Error!</span></strong>", new AlertOptions() { OkButtonText = "OK", ShowClose = true, Width = "contain" });
+                    return;
+                }
+            }
+
+            await DialogService.Alert("<strong>User updated successfully</strong>", "<strong><span style='color: green'>Success!</span></strong>", new AlertOptions() { OkButtonText = "OK", ShowClose = true, Width = "contain" });
+            DialogService.Close(true);
+        }
+        catch (Exception ex)
+        {
+            await DialogService.Alert($"<strong>Failed to update user: {ex.Message}</strong>", "<strong><span style='color: red'>Error!</span></strong>", new AlertOptions() { OkButtonText = "OK", ShowClose = true, Width = "contain" });
+        }
+    }
+
+    private void CloseDialog()
+    {
+        DialogService.Close(false);
+    }
+}

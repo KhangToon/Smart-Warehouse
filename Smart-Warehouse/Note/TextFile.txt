@@ -1,0 +1,6 @@
+﻿UPDATE VERSION DETAILS
+
+Version 2.0.0
+
+- Using generic/interface types for sqlservices
+- Convert to async/await sqlservice

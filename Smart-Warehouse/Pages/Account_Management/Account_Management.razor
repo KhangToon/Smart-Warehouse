@@ -1,0 +1,38 @@
+﻿@page "/account-management"
+@attribute [Authorize(Roles = "Admin")]
+
+@using System.Net.Http.Json
+@using System.Text
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@using Smart_Warehouse.Commons
+@using Radzen
+@using Radzen.Blazor
+@using Smart_Warehouse.Pages.Account_Management.Role
+@using Smart_Warehouse.Pages.Account_Management.User
+
+@inject IHttpClientFactory HttpClientFactory
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<h1>Account Management</h1>
+
+<RadzenTabs RenderMode="TabRenderMode.Client">
+    <Tabs>
+        <!-- User Management Tab -->
+        <RadzenTabsItem Text="User Management">
+            <UserManagement></UserManagement>
+        </RadzenTabsItem>
+
+        <!-- Role Management Tab -->
+        <RadzenTabsItem Text="Role Management">
+            <RoleManagement></RoleManagement>
+        </RadzenTabsItem>
+    </Tabs>
+</RadzenTabs>
+
+@code {
+
+}

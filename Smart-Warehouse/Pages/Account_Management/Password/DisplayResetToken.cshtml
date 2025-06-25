@@ -1,0 +1,15 @@
+﻿@page
+@model Smart_Warehouse.Pages.Account_Management.Password.DisplayResetTokenModel
+@{
+    ViewData["Title"] = "Reset Password Token";
+}
+
+<h1>@ViewData["Title"]</h1>
+<p>Here is your password reset token. Copy it and use it to reset your password manually:</p>
+<div class="form-group">
+    <textarea class="form-control" rows="6" cols="80" readonly>@Model.Token</textarea>
+</div>
+<p>
+    <strong>Note:</strong> This token is sensitive and should only be shared with authorized personnel.
+</p>
+<a asp-page="./ForgotPassword" class="btn btn-primary">Back</a>

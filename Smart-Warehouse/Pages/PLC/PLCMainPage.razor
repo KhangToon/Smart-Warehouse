@@ -1,0 +1,28 @@
+﻿@page "/plc"
+@using Smart_Warehouse.Services.PLCServices
+@inject PLCAPIService PLCAPIService
+
+<h3>PLC Data</h3>
+
+<input @bind="address" placeholder="Enter Address" />
+<button @onclick="ReadData">Read Data</button>
+<p>Data: @data</p>
+
+<input @bind="writeValue" placeholder="Value to Write" />
+<button @onclick="WriteData">Write Data</button>
+
+@code {
+    private string address = string.Empty;
+    private string data = string.Empty;
+    private string writeValue = string.Empty;
+
+    private async Task ReadData()
+    {   
+        data = await PLCAPIService.ReadPLCDataAsync(address);
+    }
+
+    private async Task WriteData()
+    {
+        await PLCAPIService.WritePLCDataAsync(address, writeValue);
+    }
+}

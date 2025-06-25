@@ -1,0 +1,47 @@
+﻿@page "/"
+@attribute [Authorize(Roles = "Admin, User")]
+
+@using Smart_Warehouse.Commons
+@using Smart_Warehouse.API.Models
+@using Radzen.Blazor
+@using Radzen
+@using Microsoft.AspNetCore.Components
+@using System.Security.Claims
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+@code {
+    private List<string>? UserRoles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        var user = authState?.User;
+
+        if (user != null && user.Identity?.IsAuthenticated == true)
+        {
+            UserRoles = user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+        }
+
+        // Checking if is User login not Admin
+        if (UserRoles != null && UserRoles.Any())
+        {
+            string userrole = UserRoles.FirstOrDefault()?.Trim() ?? string.Empty;
+
+            if (userrole == "User")
+            {
+                // Navigate to Mobile device
+                // NavigationManager.NavigateTo("/mobilemainpage");
+            }
+            else if (userrole == "Admin")
+            {
+                // Navigate to admin firstpage
+                // NavigationManager.NavigateTo("/pagedskhsanxuats");
+            }
+        }
+
+        await base.OnInitializedAsync();
+    }
+}

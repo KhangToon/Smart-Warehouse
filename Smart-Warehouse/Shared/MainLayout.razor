@@ -1,0 +1,89 @@
+﻿@attribute [Authorize(Roles = "Admin, User")]
+
+@inherits LayoutComponentBase
+
+@using Radzen;
+@using Radzen.Blazor;
+@using System.Security.Claims
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject TooltipService TooltipService
+
+<RadzenLayout Style="height: contain; width: 100%;">
+    <RadzenHeader Style="height: 5%; align-items: center;">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="0" Style="padding-left: 4px; width: 100%; height: 100%">
+            <RadzenSidebarToggle Click="@SidebarToggleClick" Style="color: rgba(28, 49, 90)" />
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" JustifyContent="JustifyContent.Center" Style="width: 100%">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Style="width: 100%; padding-left: 20px; padding-right: 20px">
+                    <RadzenLabel Visible=@(UserRoles?.FirstOrDefault() == "Admin") Text="Process Management" Style="color: rgba(28, 49, 90); font-size: 18px " />
+                    <RadzenStack Gap="10px" Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Style="width: contain; height: contain">
+                        <LoginDisplay />
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenHeader>
+    <NavigatorMenu visibleSideBar="visibleSideBar" sidebarExpanded="sidebarExpanded" />
+    <RadzenBody Style="height: 100%; width: 100%; overflow: scroll; padding-bottom: 0; padding-right: 0px">
+        @Body
+    </RadzenBody>
+</RadzenLayout>
+
+<RadzenDialog />
+<RadzenNotification />
+<RadzenTooltip />
+<RadzenContextMenu />
+
+@code
+{
+    private bool visibleSideBar = true;
+    private bool sidebarExpanded = true;
+
+    private List<string>? UserRoles;
+
+    void SidebarToggleClick()
+    {
+        sidebarExpanded = !sidebarExpanded;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        var user = authState?.User;
+
+        if (user != null && user.Identity?.IsAuthenticated == true)
+        {
+            // Check for claims with type "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+            UserRoles = user.Claims
+                .Where(c => c.Type == ClaimTypes.Role) 
+                .Select(c => c.Value)
+                .ToList();
+        }
+
+        // Checking if is User login not Admin
+        if (UserRoles != null && UserRoles.Any())
+        {
+            if (UserRoles.FirstOrDefault() == "User")
+            {
+                visibleSideBar = false; // hide sidemenubar
+            }
+            else if (UserRoles.FirstOrDefault() == "Admin")
+            {
+
+            }
+        }
+
+        // --> auto direction to "/" page
+
+        await base.OnInitializedAsync();
+    }
+
+    // Tooltip
+    void ShowToolTip(ElementReference elementReference, TooltipPosition position, string content, int delay, int duration = 500)
+    {
+        TooltipOptions options = new TooltipOptions() { Position = position, Delay = delay, Duration = duration, Style = "background-color: var(--rz-primary-light)" };
+
+        TooltipService.Open(elementReference, content, options);
+    }
+}
